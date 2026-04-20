@@ -1,0 +1,43 @@
+name: Daily LinkedIn post
+
+on:
+  schedule:
+    # 09:00 London time. GitHub cron is UTC, so this is 08:00 UTC
+    # (BST adds an hour, so in summer it'll actually fire at 10:00 London).
+    # Adjust to taste or split into two entries if you care about DST.
+    - cron: "0 8 * * *"
+  workflow_dispatch: # lets you trigger manually from the Actions tab
+
+permissions:
+  contents: write # needed so the job can commit updated queue/posted files
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Post to LinkedIn
+        env:
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
+        run: python scripts/post_to_linkedin.py
+
+      - name: Commit updated queue/posted state
+        run: |
+          if [[ -n "$(git status --porcelain content/)" ]]; then
+            git config user.name "linkedin-autoposter"
+            git config user.email "linkedin-autoposter@users.noreply.github.com"
+            git add content/
+            git commit -m "chore: post published, update queue state"
+            git push
+          else
+            echo "No state changes to commit."
+          fi
