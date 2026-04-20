@@ -3,6 +3,16 @@
 A free, no-limit Buffer replacement. Runs entirely on GitHub Actions. Drafts
 LinkedIn posts with Claude, posts one per day with a rotating image.
 
+There are two ways to use it:
+
+- **Web UI (recommended)** — a password-protected Next.js dashboard deployed to
+  Vercel. Drafts, queue, image uploads, everything in a browser. See
+  [`web/README.md`](./web/README.md).
+- **Terminal workflow** — edit `content/topics.md`, run
+  `scripts/generate_drafts.py`, commit and push. Covered below.
+
+Either way, the GitHub Actions cron does the actual posting.
+
 ## How it works
 
 1. You write a list of topics in `content/topics.md`.
