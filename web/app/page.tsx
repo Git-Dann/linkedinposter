@@ -18,7 +18,9 @@ export default function Dashboard() {
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [mode, setMode] = useState<"ai" | "manual">("ai");
   const [newTopic, setNewTopic] = useState("");
+  const [manualText, setManualText] = useState("");
   const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,6 +95,21 @@ export default function Dashboard() {
     } finally {
       setDrafting(false);
     }
+  }
+
+  async function addManual() {
+    if (!manualText.trim()) return;
+    const topic = newTopic.trim() || manualText.trim().slice(0, 60);
+    const newPost: Post = {
+      id: Math.random().toString(36).slice(2, 10),
+      topic,
+      text: manualText.trim(),
+      status: "draft",
+      created_at: new Date().toISOString(),
+    };
+    await saveQueue([...queue, newPost], `ui: manual draft "${topic.slice(0, 40)}"`);
+    setNewTopic("");
+    setManualText("");
   }
 
   async function updatePost(id: string, patch: Partial<Post>) {
@@ -177,25 +194,75 @@ export default function Dashboard() {
 
       {/* New post */}
       <section className="mb-8 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <h2 className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
-          New post from topic
-        </h2>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            value={newTopic}
-            onChange={(e) => setNewTopic(e.target.value)}
-            placeholder="e.g. Why most B2B onboarding is broken"
-            className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-950"
-            disabled={drafting}
-          />
+        <div className="mb-3 flex items-center gap-1 rounded-lg bg-neutral-100 p-1 dark:bg-neutral-800 w-fit">
           <button
-            onClick={draftNow}
-            disabled={drafting || !newTopic.trim()}
-            className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+            onClick={() => setMode("ai")}
+            className={`rounded-md px-3 py-1 text-xs font-medium transition ${
+              mode === "ai"
+                ? "bg-white shadow-sm dark:bg-neutral-950"
+                : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+            }`}
           >
-            {drafting ? "Drafting..." : "Draft with AI"}
+            Draft with AI
+          </button>
+          <button
+            onClick={() => setMode("manual")}
+            className={`rounded-md px-3 py-1 text-xs font-medium transition ${
+              mode === "manual"
+                ? "bg-white shadow-sm dark:bg-neutral-950"
+                : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+            }`}
+          >
+            Write manually
           </button>
         </div>
+
+        {mode === "ai" ? (
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              value={newTopic}
+              onChange={(e) => setNewTopic(e.target.value)}
+              placeholder="Topic, e.g. Why most B2B onboarding is broken"
+              className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-950"
+              disabled={drafting}
+            />
+            <button
+              onClick={draftNow}
+              disabled={drafting || !newTopic.trim()}
+              className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+            >
+              {drafting ? "Drafting..." : "Draft with AI"}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <input
+              value={newTopic}
+              onChange={(e) => setNewTopic(e.target.value)}
+              placeholder="Label (optional - for your reference in the queue)"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-950"
+            />
+            <textarea
+              value={manualText}
+              onChange={(e) => setManualText(e.target.value)}
+              rows={8}
+              placeholder="Write your post here..."
+              className="w-full rounded-lg border border-neutral-300 bg-white p-3 text-sm focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-950"
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-neutral-500">
+                {manualText.length} chars
+              </span>
+              <button
+                onClick={addManual}
+                disabled={!manualText.trim()}
+                className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+              >
+                Add to drafts
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Drafts */}
